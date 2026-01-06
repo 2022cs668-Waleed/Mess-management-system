@@ -1,0 +1,163 @@
+@model _2022_CS_668.ViewModels.AttendanceMarkViewModel
+
+@{
+    ViewData["Title"] = "Mark Attendance";
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="fas fa-user-check"></i> Mark Attendance</h2>
+        <p class="text-muted">Mark daily attendance for students</p>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <label for="attendanceDate" class="form-label">Select Date</label>
+                <input type="date" id="attendanceDate" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="button" id="loadAttendance" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Load Students
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Student Attendance</h5>
+            <button type="button" id="saveAttendance" class="btn btn-success" style="display:none;">
+                <i class="fas fa-save"></i> Save Attendance
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="attendanceList">
+            <p class="text-muted text-center">Select a date and click "Load Students" to begin</p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#loadAttendance').on('click', function () {
+                var date = $('#attendanceDate').val();
+                if (!date) {
+                    showAlert('Please select a date', 'danger');
+                    return;
+                }
+
+                showLoading();
+                $.ajax({
+                    url: '@Url.Action("GetStudentsForDate")',
+                    type: 'GET',
+                    data: { date: date },
+                    success: function (result) {
+                        hideLoading();
+                        $('#attendanceList').html(result);
+                        $('#saveAttendance').show();
+                        updateAllTotals();
+                    },
+                    error: function (xhr, status, error) {
+                        handleAjaxError(xhr, status, error);
+                    }
+                });
+            });
+
+            $('#saveAttendance').on('click', function () {
+                var attendances = [];
+                var date = $('#attendanceDate').val();
+
+                $('.attendance-row').each(function () {
+                    var userId = $(this).data('userid');
+                    var isPresent = $(this).find('.present-check').is(':checked');
+                    var selectedMenuIds = [];
+
+                    $(this).find('.menu-item-check:checked').each(function () {
+                        selectedMenuIds.push(parseInt($(this).val()));
+                    });
+
+                    attendances.push({
+                        userId: userId,
+                        date: date,
+                        isPresent: isPresent,
+                        selectedMenuIds: selectedMenuIds
+                    });
+                });
+
+                showLoading();
+                $.ajax({
+                    url: '@Url.Action("BulkUpdate")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(attendances),
+                    success: function (result) {
+                        hideLoading();
+                        if (result.success) {
+                            showAlert(result.message, 'success');
+                            // Reload the list to show updated data
+                            $('#loadAttendance').click();
+                        } else {
+                            showAlert(result.message, 'danger');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        handleAjaxError(xhr, status, error);
+                    }
+                });
+            });
+
+            // Handle present checkbox change
+            $(document).on('change', '.present-check', function () {
+                var row = $(this).closest('.attendance-row');
+                var isPresent = $(this).is(':checked');
+                
+                // Enable/disable optional items based on present status
+                row.find('.optional-item').prop('disabled', !isPresent);
+                
+                // If not present, uncheck all optional items
+                if (!isPresent) {
+                    row.find('.optional-item').prop('checked', false);
+                }
+                
+                // Mandatory items are always checked when present
+                if (isPresent) {
+                    row.find('.mandatory-item').prop('checked', true);
+                } else {
+                    row.find('.mandatory-item').prop('checked', false);
+                }
+                
+                updateRowTotal(row);
+            });
+
+            // Handle menu item checkbox change
+            $(document).on('change', '.menu-item-check', function () {
+                var row = $(this).closest('.attendance-row');
+                updateRowTotal(row);
+            });
+
+            function updateRowTotal(row) {
+                var total = 0;
+                row.find('.menu-item-check:checked').each(function () {
+                    var price = parseFloat($(this).data('price')) || 0;
+                    total += price;
+                });
+                row.find('.total-amount').text(total.toFixed(2));
+            }
+
+            function updateAllTotals() {
+                $('.attendance-row').each(function () {
+                    updateRowTotal($(this));
+                });
+            }
+        });
+    </script>
+}
+
+

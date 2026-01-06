@@ -1,0 +1,78 @@
+@model List<_2022_CS_668.Models.Bill>
+
+@{
+    ViewData["Title"] = "Payment Status";
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="fas fa-credit-card"></i> Payment Status</h2>
+        <p class="text-muted">View all your bills and payment status</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Month/Year</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Generated Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var bill in Model)
+                        {
+                            <tr>
+                                <td>@(new DateTime(2000, bill.Month, 1).ToString("MMMM")) @bill.Year</td>
+                                <td><strong>@bill.TotalAmount.ToString("N2")</strong></td>
+                                <td>
+                                    @switch (bill.Status)
+                                    {
+                                        case _2022_CS_668.Models.BillStatus.Pending:
+                                            <span class="badge bg-secondary">Pending</span>
+                                            break;
+                                        case _2022_CS_668.Models.BillStatus.Generated:
+                                            <span class="badge bg-info">Generated</span>
+                                            break;
+                                        case _2022_CS_668.Models.BillStatus.Approved:
+                                            <span class="badge bg-success">Approved</span>
+                                            break;
+                                        case _2022_CS_668.Models.BillStatus.Paid:
+                                            <span class="badge bg-primary">Paid</span>
+                                            break;
+                                        case _2022_CS_668.Models.BillStatus.Disputed:
+                                            <span class="badge bg-warning">Disputed</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>@bill.GeneratedAt.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    <a asp-action="MonthlyBill" asp-route-month="@bill.Month" asp-route-year="@bill.Year" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No bills found</p>
+            </div>
+        }
+    </div>
+</div>
+
+
+

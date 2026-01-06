@@ -1,0 +1,128 @@
+@model List<_2022_CS_668.Models.Bill>
+
+@{
+    ViewData["Title"] = "Bills";
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="fas fa-file-invoice"></i> Monthly Bills - @ViewBag.MonthName @ViewBag.Year</h2>
+        <p class="text-muted">View all generated bills</p>
+    </div>
+    <div class="col-auto">
+        <a asp-action="Generate" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Generate New Bills
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="month" class="form-label">Month</label>
+                <select name="month" id="month" class="form-select">
+                    @for (int i = 1; i <= 12; i++)
+                    {
+                        <option value="@i" selected="@(i == ViewBag.Month)">
+                            @(new DateTime(2000, i, 1).ToString("MMMM"))
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label for="year" class="form-label">Year</label>
+                <select name="year" id="year" class="form-select">
+                    @for (int i = DateTime.Today.Year - 2; i <= DateTime.Today.Year + 1; i++)
+                    {
+                        <option value="@i" selected="@(i == ViewBag.Year)">@i</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Food Amount</th>
+                            <th>Water/Tea Amount</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Generated Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var bill in Model)
+                        {
+                            <tr>
+                                <td>@(bill.User?.FullName ?? "Unknown User")</td>
+                                <td>Rs @bill.FoodAmount.ToString("N2")</td>
+                                <td>Rs @bill.WaterTeaAmount.ToString("N2")</td>
+                                <td><strong>Rs @bill.TotalAmount.ToString("N2")</strong></td>
+                                <td>
+                                    @switch (bill.Status)
+                                    {
+                                        case _2022_CS_668.Models.BillStatus.Pending:
+                                            <span class="badge bg-secondary">Pending</span>
+                                            break;
+                                        case _2022_CS_668.Models.BillStatus.Generated:
+                                            <span class="badge bg-info">Generated</span>
+                                            break;
+                                        case _2022_CS_668.Models.BillStatus.Approved:
+                                            <span class="badge bg-success">Approved</span>
+                                            break;
+                                        case _2022_CS_668.Models.BillStatus.Paid:
+                                            <span class="badge bg-primary">Paid</span>
+                                            break;
+                                        case _2022_CS_668.Models.BillStatus.Disputed:
+                                            <span class="badge bg-warning">Disputed</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>@bill.GeneratedAt.ToString("dd MMM yyyy")</td>
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@bill.Id" class="btn btn-sm btn-info">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-info">
+                            <td><strong>Total:</strong></td>
+                            <td><strong>Rs @Model.Sum(b => b.FoodAmount).ToString("N2")</strong></td>
+                            <td><strong>Rs @Model.Sum(b => b.WaterTeaAmount).ToString("N2")</strong></td>
+                            <td><strong>Rs @Model.Sum(b => b.TotalAmount).ToString("N2")</strong></td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="fas fa-file-invoice fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No bills found for the selected period</p>
+            </div>
+        }
+    </div>
+</div>
+
+
+

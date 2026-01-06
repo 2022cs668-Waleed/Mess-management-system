@@ -1,0 +1,98 @@
+@model _2022_CS_668.ViewModels.PaymentViewModel
+
+@{
+    ViewData["Title"] = "Mark Payment";
+    var bill = ViewBag.Bill as _2022_CS_668.Models.Bill;
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="fas fa-money-bill"></i> Mark Payment</h2>
+        <p class="text-muted">Record payment for bill</p>
+    </div>
+</div>
+
+@if (bill != null)
+{
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Bill Details</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Student:</strong> @bill.User.FullName</p>
+                    <p><strong>Month/Year:</strong> @(new DateTime(2000, bill.Month, 1).ToString("MMMM")) @bill.Year</p>
+                    <p><strong>Total Amount:</strong> @bill.TotalAmount.ToString("N2")</p>
+                    <p><strong>Food Amount:</strong> @bill.FoodAmount.ToString("N2")</p>
+                    <p><strong>Water/Tea Amount:</strong> @bill.WaterTeaAmount.ToString("N2")</p>
+                    <p><strong>Status:</strong> <span class="badge bg-success">Approved</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Payment Information</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="MarkPayment" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="BillId" />
+
+                        <div class="mb-3">
+                            <label asp-for="Amount" class="form-label">Amount</label>
+                            <input asp-for="Amount" class="form-control" value="@bill.TotalAmount" />
+                            <span asp-validation-for="Amount" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PaymentDate" class="form-label">Payment Date</label>
+                            <input asp-for="PaymentDate" class="form-control" type="date" />
+                            <span asp-validation-for="PaymentDate" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PaymentMethod" class="form-label">Payment Method</label>
+                            <select asp-for="PaymentMethod" class="form-control">
+                                <option value="">Select Payment Method</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Online Payment">Online Payment</option>
+                                <option value="Cheque">Cheque</option>
+                            </select>
+                            <span asp-validation-for="PaymentMethod" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TransactionReference" class="form-label">Transaction Reference</label>
+                            <input asp-for="TransactionReference" class="form-control" />
+                            <span asp-validation-for="TransactionReference" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Remarks" class="form-label">Remarks</label>
+                            <textarea asp-for="Remarks" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="Remarks" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="PaymentManagement" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Record Payment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+
+
+

@@ -1,0 +1,94 @@
+@model _2022_CS_668.ViewModels.DashboardViewModel
+
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="fas fa-home"></i> Dashboard</h2>
+        <p class="text-muted">Welcome to Mess Management System</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card primary">
+            <div class="card-body">
+                <h3>@Model.TotalUsers</h3>
+                <p><i class="fas fa-users"></i> Total Users</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card success">
+            <div class="card-body">
+                <h3>@Model.ActiveMenuItems</h3>
+                <p><i class="fas fa-clipboard-list"></i> Active Menu Items</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card warning">
+            <div class="card-body">
+                <h3>@Model.PendingBills</h3>
+                <p><i class="fas fa-file-invoice"></i> Pending Bills</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card stat-card danger">
+            <div class="card-body">
+                <h3>@Model.UnpaidBills</h3>
+                <p><i class="fas fa-money-bill"></i> Unpaid Bills</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Quick Links</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    @if (User.IsInRole("Admin") || User.IsInRole("SuperAdmin"))
+                    {
+                        <div class="col-md-3">
+                            <a asp-controller="Menu" asp-action="Index" class="btn btn-outline-primary btn-block w-100 mb-2">
+                                <i class="fas fa-clipboard-list"></i> Manage Menu
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a asp-controller="Attendance" asp-action="Mark" class="btn btn-outline-success btn-block w-100 mb-2">
+                                <i class="fas fa-user-check"></i> Mark Attendance
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a asp-controller="Bill" asp-action="Generate" class="btn btn-outline-warning btn-block w-100 mb-2">
+                                <i class="fas fa-file-invoice-dollar"></i> Generate Bills
+                            </a>
+                        </div>
+                    }
+                    @if (User.IsInRole("Student"))
+                    {
+                        <div class="col-md-3">
+                            <a asp-controller="Student" asp-action="DailyBill" class="btn btn-outline-info btn-block w-100 mb-2">
+                                <i class="fas fa-receipt"></i> View Daily Bill
+                            </a>
+                        </div>
+                        <div class="col-md-3">
+                            <a asp-controller="Student" asp-action="MonthlyBill" class="btn btn-outline-primary btn-block w-100 mb-2">
+                                <i class="fas fa-file-invoice"></i> Monthly Bill
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+

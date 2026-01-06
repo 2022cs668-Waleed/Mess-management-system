@@ -1,0 +1,99 @@
+@model List<_2022_CS_668.ViewModels.AttendanceViewModel>
+
+@if (Model != null && Model.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">#</th>
+                    <th>Student Name</th>
+                    <th>Email</th>
+                    <th class="text-center" style="width: 100px;">Present</th>
+                    <th style="width: 350px;">Menu Items Selection</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < Model.Count; i++)
+                {
+                    var attendance = Model[i];
+                    var mandatoryItems = attendance.AvailableMenuItems.Where(m => m.IsMandatory).ToList();
+                    var optionalItems = attendance.AvailableMenuItems.Where(m => !m.IsMandatory).ToList();
+                    
+                    <tr class="attendance-row" data-userid="@attendance.UserId">
+                        <td>@(i + 1)</td>
+                        <td>@attendance.FullName</td>
+                        <td><small>@attendance.UserName</small></td>
+                        <td class="text-center">
+                            <input type="checkbox" class="form-check-input present-check" @(attendance.IsPresent ? "checked" : "") />
+                        </td>
+                        <td>
+                            <div class="menu-selection-container">
+                                @if (mandatoryItems.Any())
+                                {
+                                    <div class="mb-2">
+                                        <strong class="text-muted d-block mb-1" style="font-size: 0.85rem;">Mandatory Items:</strong>
+                                        @foreach (var item in mandatoryItems)
+                                        {
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input menu-item-check mandatory-item" 
+                                                       type="checkbox" 
+                                                       value="@item.Id" 
+                                                       id="menu_@(attendance.UserId)_@item.Id"
+                                                       @(attendance.SelectedMenuIds.Contains(item.Id) || !attendance.IsPresent ? "checked" : "")
+                                                       data-price="@item.Price"
+                                                       disabled />
+                                                <label class="form-check-label" for="menu_@(attendance.UserId)_@item.Id" style="font-size: 0.9rem;">
+                                                    @item.ItemName <span class="text-primary">(Rs @item.Price.ToString("N2"))</span>
+                                                </label>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                
+                                @if (optionalItems.Any())
+                                {
+                                    <div>
+                                        <strong class="text-muted d-block mb-1" style="font-size: 0.85rem;">Optional Items:</strong>
+                                        @foreach (var item in optionalItems)
+                                        {
+                                            <div class="form-check form-check-inline">
+                                                <input class="form-check-input menu-item-check optional-item" 
+                                                       type="checkbox" 
+                                                       value="@item.Id" 
+                                                       id="menu_@(attendance.UserId)_@item.Id"
+                                                       @(attendance.SelectedMenuIds.Contains(item.Id) ? "checked" : "")
+                                                       @(!attendance.IsPresent ? "disabled" : "")
+                                                       data-price="@item.Price" />
+                                                <label class="form-check-label" for="menu_@(attendance.UserId)_@item.Id" style="font-size: 0.9rem;">
+                                                    @item.ItemName <span class="text-success">(Rs @item.Price.ToString("N2"))</span>
+                                                </label>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                
+                                @if (!mandatoryItems.Any() && !optionalItems.Any())
+                                {
+                                    <small class="text-muted">No menu items available for this date</small>
+                                }
+                                
+                                <div class="mt-2">
+                                    <small class="text-info daily-total">
+                                        <strong>Daily Total: Rs <span class="total-amount">0.00</span></strong>
+                                    </small>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted text-center py-4">No students found</p>
+}
+
+

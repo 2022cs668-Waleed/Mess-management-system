@@ -1,0 +1,164 @@
+@model _2022_CS_668.ViewModels.PaymentViewModel
+
+@{
+    ViewData["Title"] = "Pay Bill";
+    var bill = ViewBag.Bill as _2022_CS_668.Models.Bill;
+    var balance = ViewBag.Balance as decimal?;
+}
+
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="fas fa-credit-card"></i> Pay Bill</h2>
+        <p class="text-muted">Submit your payment for monthly bill</p>
+    </div>
+</div>
+
+@if (bill != null)
+{
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-invoice"></i> Bill Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Period:</strong></div>
+                        <div class="col-6 text-end">@(new DateTime(2000, bill.Month, 1).ToString("MMMM")) @bill.Year</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Food Amount:</strong></div>
+                        <div class="col-6 text-end">@bill.FoodAmount.ToString("N2")</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Water & Tea:</strong></div>
+                        <div class="col-6 text-end">@bill.WaterTeaAmount.ToString("N2")</div>
+                    </div>
+                    <hr />
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Total Amount:</strong></div>
+                        <div class="col-6 text-end"><strong>@bill.TotalAmount.ToString("N2")</strong></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6"><strong>Paid:</strong></div>
+                        <div class="col-6 text-end text-success">@(bill.TotalAmount - (balance ?? 0)).ToString("N2")</div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6"><strong>Balance Due:</strong></div>
+                        <div class="col-6 text-end text-danger"><strong>@(balance?.ToString("N2") ?? "0.00")</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>Note:</strong> After payment submission, it will be verified by the admin before marking the bill as paid.
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-money-bill-wave"></i> Payment Details</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="PayBill" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="BillId" />
+
+                        <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Amount" class="form-label">
+                                <i class="fas fa-dollar-sign"></i> Payment Amount
+                            </label>
+                            <input asp-for="Amount" class="form-control form-control-lg" type="number" step="0.01" />
+                            <span asp-validation-for="Amount" class="text-danger"></span>
+                            <div class="form-text">Maximum payable: @(balance?.ToString("N2") ?? "0.00")</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PaymentDate" class="form-label">
+                                <i class="fas fa-calendar"></i> Payment Date
+                            </label>
+                            <input asp-for="PaymentDate" class="form-control" type="date" />
+                            <span asp-validation-for="PaymentDate" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="PaymentMethod" class="form-label">
+                                <i class="fas fa-credit-card"></i> Payment Method
+                            </label>
+                            <select asp-for="PaymentMethod" class="form-control">
+                                <option value="">Select Payment Method</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Online Payment">Online Payment</option>
+                                <option value="Cheque">Cheque</option>
+                                <option value="Mobile Payment">Mobile Payment</option>
+                            </select>
+                            <span asp-validation-for="PaymentMethod" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TransactionReference" class="form-label">
+                                <i class="fas fa-hashtag"></i> Transaction Reference
+                            </label>
+                            <input asp-for="TransactionReference" class="form-control" placeholder="e.g., Receipt No., Transaction ID" />
+                            <span asp-validation-for="TransactionReference" class="text-danger"></span>
+                            <div class="form-text">Optional: Enter receipt number or transaction ID</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Remarks" class="form-label">
+                                <i class="fas fa-comment"></i> Remarks
+                            </label>
+                            <textarea asp-for="Remarks" class="form-control" rows="3" placeholder="Any additional notes..."></textarea>
+                            <span asp-validation-for="Remarks" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-action="MonthlyBill" asp-route-month="@bill.Month" asp-route-year="@bill.Year" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-check-circle"></i> Submit Payment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        Bill not found or you don't have access to this bill.
+    </div>
+    <a asp-action="PaymentStatus" class="btn btn-primary">
+        <i class="fas fa-arrow-left"></i> Back to Payment Status
+    </a>
+}
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function () {
+            // Set max amount to balance
+            var maxAmount = @(balance ?? 0);
+            $('#Amount').attr('max', maxAmount);
+            
+            // Warn if amount exceeds balance
+            $('#Amount').on('change', function () {
+                var amount = parseFloat($(this).val());
+                if (amount > maxAmount) {
+                    alert('Payment amount cannot exceed balance due: ' + maxAmount.toFixed(2));
+                    $(this).val(maxAmount.toFixed(2));
+                }
+            });
+        });
+    </script>
+}
+
