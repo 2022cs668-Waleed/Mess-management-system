@@ -27,6 +27,19 @@ if (builder.Environment.IsProduction())
     var envDatabaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
     if (!string.IsNullOrWhiteSpace(envDatabaseUrl))
     {
+        // Trim and remove surrounding quotes that some platforms add
+        envDatabaseUrl = envDatabaseUrl.Trim();
+        if ((envDatabaseUrl.StartsWith("\"") && envDatabaseUrl.EndsWith("\"")) || (envDatabaseUrl.StartsWith("'") && envDatabaseUrl.EndsWith("'")))
+        {
+            envDatabaseUrl = envDatabaseUrl.Substring(1, envDatabaseUrl.Length - 2);
+        }
+
+        // Normalize scheme variants
+        if (envDatabaseUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+        {
+            envDatabaseUrl = "postgres://" + envDatabaseUrl.Substring("postgresql://".Length);
+        }
+
         // If DATABASE_URL is in the form postgres://user:pass@host:port/db
         if (envDatabaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
         {
@@ -49,7 +62,8 @@ if (builder.Environment.IsProduction())
         }
         else
         {
-            connectionString = envDatabaseUrl; // maybe already a connection string
+            // If it's not a URL, assume it might already be a valid connection string
+            connectionString = envDatabaseUrl;
         }
     }
 
@@ -72,6 +86,13 @@ if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(connectionSt
 
 if (builder.Environment.IsProduction())
 {
+    // Final sanity check: if the connectionString appears to start with a URL scheme still, throw a helpful error
+    var trimmed = connectionString?.TrimStart();
+    if (!string.IsNullOrWhiteSpace(trimmed) && (trimmed.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase) || trimmed.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase)))
+    {
+        throw new InvalidOperationException("DATABASE_URL appears to be a URL. Ensure Program.cs converts it to a valid Npgsql connection string or set a full connection string in the PostgreSQL setting.");
+    }
+
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
