@@ -12,8 +12,8 @@ namespace _2022_CS_668.Data
         {
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
 
-            // Ensure database is created
-            await context.Database.MigrateAsync();
+            // NOTE: Database creation/migrations are handled in Program.cs (to avoid provider-specific migration issues).
+            // Seed roles, users and initial data assuming the database schema already exists.
 
             // Seed Roles - Only Admin and Student
             string[] roleNames = { "Admin", "Student" };
