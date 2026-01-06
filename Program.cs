@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.HttpOverrides;
 using _2022_CS_668.Data;
 using _2022_CS_668.Models;
 using _2022_CS_668.Repositories;
@@ -13,23 +14,60 @@ builder.Services.AddControllersWithViews();
 // Configure Antiforgery
 builder.Services.AddAntiforgery(options =>
 {
-    options.Cookie.SecurePolicy = builder.Environment.IsProduction() 
-        ? CookieSecurePolicy.Always 
-        : CookieSecurePolicy.None;
+    // Use SameAsRequest so forwarded HTTPS (from proxy) is respected
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
 // Configure Database - Use PostgreSQL in production, SQL Server in development
-var connectionString = builder.Environment.IsProduction()
-    ? Environment.GetEnvironmentVariable("DATABASE_URL") ?? builder.Configuration.GetConnectionString("PostgreSQL")
-    : builder.Configuration.GetConnectionString("DefaultConnection");
-
-// Convert Render's DATABASE_URL format to PostgreSQL connection string if needed
-if (builder.Environment.IsProduction() && !string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgres://"))
+var connectionString = string.Empty;
+if (builder.Environment.IsProduction())
 {
-    var databaseUri = new Uri(connectionString);
-    var userInfo = databaseUri.UserInfo.Split(':');
-    connectionString = $"Host={databaseUri.Host};Port={databaseUri.Port};Database={databaseUri.LocalPath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+    // Prefer DATABASE_URL environment variable (Render)
+    var envDatabaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (!string.IsNullOrWhiteSpace(envDatabaseUrl))
+    {
+        // If DATABASE_URL is in the form postgres://user:pass@host:port/db
+        if (envDatabaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
+        {
+            try
+            {
+                var databaseUri = new Uri(envDatabaseUrl);
+                var userInfo = databaseUri.UserInfo.Split(':', 2);
+                var host = databaseUri.Host;
+                var port = databaseUri.Port > 0 ? databaseUri.Port : 5432;
+                var database = databaseUri.LocalPath.TrimStart('/');
+                var user = userInfo.Length > 0 ? userInfo[0] : string.Empty;
+                var pass = userInfo.Length > 1 ? userInfo[1] : string.Empty;
+                connectionString = $"Host={host};Port={port};Database={database};Username={user};Password={pass};SSL Mode=Require;Trust Server Certificate=true";
+            }
+            catch
+            {
+                // Fallback to using raw env value (may be a full connection string)
+                connectionString = envDatabaseUrl;
+            }
+        }
+        else
+        {
+            connectionString = envDatabaseUrl; // maybe already a connection string
+        }
+    }
+
+    // If still empty, try appsettings
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
+    }
+}
+else
+{
+    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+}
+
+// Validate connection string for production
+if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(connectionString))
+{
+    throw new InvalidOperationException("No database connection string configured for production. Set the DATABASE_URL environment variable or PostgreSQL connection string.");
 }
 
 if (builder.Environment.IsProduction())
@@ -67,9 +105,8 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = false;
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    options.Cookie.SecurePolicy = builder.Environment.IsProduction() 
-        ? CookieSecurePolicy.Always 
-        : CookieSecurePolicy.None;
+    // Respect forwarded protocol by using SameAsRequest
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.MaxAge = null;
     options.Cookie.Expiration = null;
@@ -84,9 +121,16 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    options.Cookie.SecurePolicy = builder.Environment.IsProduction() 
-        ? CookieSecurePolicy.Always 
-        : CookieSecurePolicy.None;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+
+// Configure forwarded headers to respect X-Forwarded-For and X-Forwarded-Proto (needed behind proxy)
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    // Allow any proxy (Render provides forwarded headers)
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 var app = builder.Build();
@@ -122,6 +166,9 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Account/Login");
     app.UseHsts();
 }
+
+// Enable forwarded headers middleware early so request.IsHttps is correct behind proxy
+app.UseForwardedHeaders();
 
 // Use HTTPS redirection in production
 if (app.Environment.IsProduction())
