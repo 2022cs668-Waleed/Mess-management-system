@@ -167,7 +167,17 @@ using (var scope = app.Services.CreateScope())
         // Apply migrations automatically in production
         if (app.Environment.IsProduction())
         {
-            context.Database.Migrate();
+            // Use EnsureDeleted+EnsureCreated for Npgsql to reset DB in production
+            var provider = context.Database.ProviderName ?? string.Empty;
+            if (provider.Contains("Npgsql", StringComparison.OrdinalIgnoreCase))
+            {
+                await context.Database.EnsureDeletedAsync();
+                await context.Database.EnsureCreatedAsync();
+            }
+            else
+            {
+                await context.Database.MigrateAsync();
+            }
         }
         
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
