@@ -142,6 +142,9 @@ namespace _2022_CS_668.Data
 
                 var menus = new List<Menu>();
 
+                // Use UTC dates to avoid Npgsql DateTime Kind errors
+                var utcSevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+
                 if (waterTeaGroup != null)
                 {
                     // Add multiple water & tea items
@@ -151,7 +154,7 @@ namespace _2022_CS_668.Data
                         ItemName = "Morning Tea",
                         Category = MenuCategory.WaterTea,
                         Price = 10.00m,
-                        EffectiveDate = DateTime.Today.AddDays(-7),
+                        EffectiveDate = utcSevenDaysAgo,
                         IsActive = true
                     });
                     
@@ -161,7 +164,7 @@ namespace _2022_CS_668.Data
                         ItemName = "Evening Tea",
                         Category = MenuCategory.WaterTea,
                         Price = 10.00m,
-                        EffectiveDate = DateTime.Today.AddDays(-7),
+                        EffectiveDate = utcSevenDaysAgo,
                         IsActive = true
                     });
                     
@@ -171,7 +174,7 @@ namespace _2022_CS_668.Data
                         ItemName = "Drinking Water",
                         Category = MenuCategory.WaterTea,
                         Price = 5.00m,
-                        EffectiveDate = DateTime.Today.AddDays(-7),
+                        EffectiveDate = utcSevenDaysAgo,
                         IsActive = true
                     });
                 }
@@ -185,7 +188,7 @@ namespace _2022_CS_668.Data
                         ItemName = "Breakfast",
                         Category = MenuCategory.Food,
                         Price = 50.00m,
-                        EffectiveDate = DateTime.Today.AddDays(-7),
+                        EffectiveDate = utcSevenDaysAgo,
                         IsActive = true
                     });
                     
@@ -195,7 +198,7 @@ namespace _2022_CS_668.Data
                         ItemName = "Lunch",
                         Category = MenuCategory.Food,
                         Price = 80.00m,
-                        EffectiveDate = DateTime.Today.AddDays(-7),
+                        EffectiveDate = utcSevenDaysAgo,
                         IsActive = true
                     });
                     
@@ -205,7 +208,7 @@ namespace _2022_CS_668.Data
                         ItemName = "Dinner",
                         Category = MenuCategory.Food,
                         Price = 70.00m,
-                        EffectiveDate = DateTime.Today.AddDays(-7),
+                        EffectiveDate = utcSevenDaysAgo,
                         IsActive = true
                     });
                     
@@ -215,7 +218,7 @@ namespace _2022_CS_668.Data
                         ItemName = "Snacks",
                         Category = MenuCategory.Food,
                         Price = 30.00m,
-                        EffectiveDate = DateTime.Today.AddDays(-7),
+                        EffectiveDate = utcSevenDaysAgo,
                         IsActive = true
                     });
                 }
