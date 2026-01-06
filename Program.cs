@@ -19,72 +19,75 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
-// Configure Database - Use PostgreSQL in production, SQL Server in development
+// Configure Database - prefer DATABASE_URL (Render) which implies PostgreSQL
 var connectionString = string.Empty;
-if (builder.Environment.IsProduction())
+var preferNpgsql = false;
+
+var envDatabaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+if (!string.IsNullOrWhiteSpace(envDatabaseUrl))
 {
-    // Prefer DATABASE_URL environment variable (Render)
-    var envDatabaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-    if (!string.IsNullOrWhiteSpace(envDatabaseUrl))
+    preferNpgsql = true;
+    // Trim and remove surrounding quotes that some platforms add
+    envDatabaseUrl = envDatabaseUrl.Trim();
+    if ((envDatabaseUrl.StartsWith("\"") && envDatabaseUrl.EndsWith("\"")) || (envDatabaseUrl.StartsWith("'") && envDatabaseUrl.EndsWith("'")))
     {
-        // Trim and remove surrounding quotes that some platforms add
-        envDatabaseUrl = envDatabaseUrl.Trim();
-        if ((envDatabaseUrl.StartsWith("\"") && envDatabaseUrl.EndsWith("\"")) || (envDatabaseUrl.StartsWith("'") && envDatabaseUrl.EndsWith("'")))
-        {
-            envDatabaseUrl = envDatabaseUrl.Substring(1, envDatabaseUrl.Length - 2);
-        }
+        envDatabaseUrl = envDatabaseUrl.Substring(1, envDatabaseUrl.Length - 2);
+    }
 
-        // Normalize scheme variants
-        if (envDatabaseUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
-        {
-            envDatabaseUrl = "postgres://" + envDatabaseUrl.Substring("postgresql://".Length);
-        }
+    // Normalize scheme variants
+    if (envDatabaseUrl.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+    {
+        envDatabaseUrl = "postgres://" + envDatabaseUrl.Substring("postgresql://".Length);
+    }
 
-        // If DATABASE_URL is in the form postgres://user:pass@host:port/db
-        if (envDatabaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
+    // If DATABASE_URL is in the form postgres://user:pass@host:port/db
+    if (envDatabaseUrl.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
+    {
+        try
         {
-            try
-            {
-                var databaseUri = new Uri(envDatabaseUrl);
-                var userInfo = databaseUri.UserInfo.Split(':', 2);
-                var host = databaseUri.Host;
-                var port = databaseUri.Port > 0 ? databaseUri.Port : 5432;
-                var database = databaseUri.LocalPath.TrimStart('/');
-                var user = userInfo.Length > 0 ? userInfo[0] : string.Empty;
-                var pass = userInfo.Length > 1 ? userInfo[1] : string.Empty;
-                connectionString = $"Host={host};Port={port};Database={database};Username={user};Password={pass};SSL Mode=Require;Trust Server Certificate=true";
-            }
-            catch
-            {
-                // Fallback to using raw env value (may be a full connection string)
-                connectionString = envDatabaseUrl;
-            }
+            var databaseUri = new Uri(envDatabaseUrl);
+            var userInfo = databaseUri.UserInfo.Split(':', 2);
+            var host = databaseUri.Host;
+            var port = databaseUri.Port > 0 ? databaseUri.Port : 5432;
+            var database = databaseUri.LocalPath.TrimStart('/');
+            var user = userInfo.Length > 0 ? userInfo[0] : string.Empty;
+            var pass = userInfo.Length > 1 ? userInfo[1] : string.Empty;
+            connectionString = $"Host={host};Port={port};Database={database};Username={user};Password={pass};SSL Mode=Require;Trust Server Certificate=true";
         }
-        else
+        catch
         {
-            // If it's not a URL, assume it might already be a valid connection string
+            // Fallback to using raw env value (may be a full connection string)
             connectionString = envDatabaseUrl;
         }
     }
-
-    // If still empty, try appsettings
-    if (string.IsNullOrWhiteSpace(connectionString))
+    else
     {
-        connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
+        // If it's not a URL, assume it might already be a valid connection string
+        connectionString = envDatabaseUrl;
     }
 }
-else
+
+// If no DATABASE_URL, choose based on environment
+if (string.IsNullOrWhiteSpace(connectionString))
 {
-    connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    if (builder.Environment.IsProduction())
+    {
+        connectionString = builder.Configuration.GetConnectionString("PostgreSQL");
+        if (!string.IsNullOrWhiteSpace(connectionString)) preferNpgsql = true;
+    }
+    else
+    {
+        connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    }
 }
 
-// Validate connection string for production
+// Validate connection string for production when no provider selected
 if (builder.Environment.IsProduction() && string.IsNullOrWhiteSpace(connectionString))
 {
     throw new InvalidOperationException("No database connection string configured for production. Set the DATABASE_URL environment variable or PostgreSQL connection string.");
 }
 
-if (builder.Environment.IsProduction())
+if (preferNpgsql)
 {
     // Final sanity check: if the connectionString appears to start with a URL scheme still, throw a helpful error
     var trimmed = connectionString?.TrimStart();
