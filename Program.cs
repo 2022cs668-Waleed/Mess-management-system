@@ -5,6 +5,7 @@ using _2022_CS_668.Data;
 using _2022_CS_668.Models;
 using _2022_CS_668.Repositories;
 using _2022_CS_668.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -134,6 +135,32 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.MaxAge = null;
     options.Cookie.Expiration = null;
+
+    options.Events = new CookieAuthenticationEvents
+    {
+        OnRedirectToLogin = ctx =>
+        {
+            var isAjax = ctx.Request.Headers["X-Requested-With"] == "XMLHttpRequest" || ctx.Request.Headers["Accept"].ToString().Contains("application/json");
+            if (isAjax)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+            ctx.Response.Redirect(ctx.RedirectUri);
+            return Task.CompletedTask;
+        },
+        OnRedirectToAccessDenied = ctx =>
+        {
+            var isAjax = ctx.Request.Headers["X-Requested-With"] == "XMLHttpRequest" || ctx.Request.Headers["Accept"].ToString().Contains("application/json");
+            if (isAjax)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            }
+            ctx.Response.Redirect(ctx.RedirectUri);
+            return Task.CompletedTask;
+        }
+    };
 });
 
 // Register Repositories
