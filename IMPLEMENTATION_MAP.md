@@ -89,3 +89,7 @@ Where to add APIs and AJAX calls:
 ---
 
 If you want, I can create this file in the repository (`IMPLEMENTATION_MAP.md`) so you can read it in the project root. Tell me to create it and I will add it now.
+
+```csharp
+var groups = ViewBag.MessGroups as IEnumerable<MessGroup>;
+  if (groups != null) { foreach(var group in groups) { ... } }
