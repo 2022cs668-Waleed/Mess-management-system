@@ -228,39 +228,49 @@ namespace _2022_CS_668.Controllers
         {
             if (ModelState.IsValid)
             {
-                var currentUser = await _userManager.GetUserAsync(User);
-                var bill = await _unitOfWork.Bills.GetByIdAsync(model.BillId);
-
-                if (bill == null)
+                try
                 {
-                    return NotFound();
+                    var currentUser = await _userManager.GetUserAsync(User);
+                    var bill = await _unitOfWork.Bills.GetByIdAsync(model.BillId);
+
+                    if (bill == null)
+                    {
+                        return NotFound();
+                    }
+
+                    // Convert PaymentDate to UTC for PostgreSQL compatibility
+                    var paymentDateUtc = DateTime.SpecifyKind(model.PaymentDate.Date, DateTimeKind.Utc);
+
+                    var payment = new Payment
+                    {
+                        BillId = model.BillId,
+                        Amount = model.Amount,
+                        PaymentDate = paymentDateUtc,
+                        PaymentMethod = model.PaymentMethod,
+                        TransactionReference = model.TransactionReference,
+                        Remarks = model.Remarks,
+                        RecordedBy = currentUser?.Id
+                    };
+
+                    await _unitOfWork.Payments.AddAsync(payment);
+
+                    // Check if bill is fully paid
+                    var totalPaid = await _unitOfWork.Payments.GetTotalPaidAmountAsync(model.BillId);
+                    if (totalPaid + model.Amount >= bill.TotalAmount)
+                    {
+                        bill.Status = BillStatus.Paid;
+                        _unitOfWork.Bills.Update(bill);
+                    }
+
+                    await _unitOfWork.SaveAsync();
+
+                    TempData["SuccessMessage"] = "Payment recorded successfully!";
+                    return RedirectToAction(nameof(PaymentManagement));
                 }
-
-                var payment = new Payment
+                catch (Exception ex)
                 {
-                    BillId = model.BillId,
-                    Amount = model.Amount,
-                    PaymentDate = model.PaymentDate,
-                    PaymentMethod = model.PaymentMethod,
-                    TransactionReference = model.TransactionReference,
-                    Remarks = model.Remarks,
-                    RecordedBy = currentUser?.Id
-                };
-
-                await _unitOfWork.Payments.AddAsync(payment);
-
-                // Check if bill is fully paid
-                var totalPaid = await _unitOfWork.Payments.GetTotalPaidAmountAsync(model.BillId);
-                if (totalPaid + model.Amount >= bill.TotalAmount)
-                {
-                    bill.Status = BillStatus.Paid;
-                    _unitOfWork.Bills.Update(bill);
+                    ModelState.AddModelError(string.Empty, $"Error recording payment: {ex.Message}");
                 }
-
-                await _unitOfWork.SaveAsync();
-
-                TempData["SuccessMessage"] = "Payment recorded successfully!";
-                return RedirectToAction(nameof(PaymentManagement));
             }
 
             ViewBag.Bill = await _unitOfWork.Bills.GetBillWithDetailsAsync(model.BillId);
