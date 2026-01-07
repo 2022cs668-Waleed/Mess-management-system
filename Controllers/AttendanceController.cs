@@ -32,42 +32,53 @@ namespace _2022_CS_668.Controllers
         [HttpGet]
         public async Task<IActionResult> GetStudentsForDate(DateTime date)
         {
-            var students = await _userManager.GetUsersInRoleAsync("Student");
-            var attendances = await _unitOfWork.Attendances.GetAttendanceByDateAsync(date);
-            
-            // Get available menu items for the date - only items with EffectiveDate <= selected date
-            var allMenus = await _unitOfWork.Menus.GetActiveMenusAsync();
-            var availableMenuItems = allMenus
-                .Where(m => m.EffectiveDate.Date <= date.Date) // Only show items effective on or before this date
-                .Select(m => new MenuItemViewModel
+            try
+            {
+                // Convert date to UTC for PostgreSQL compatibility
+                var dateUtc = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+                
+                var students = await _userManager.GetUsersInRoleAsync("Student");
+                var attendances = await _unitOfWork.Attendances.GetAttendanceByDateAsync(dateUtc);
+                
+                // Get available menu items for the date - only items with EffectiveDate <= selected date
+                var allMenus = await _unitOfWork.Menus.GetActiveMenusAsync();
+                var availableMenuItems = allMenus
+                    .Where(m => m.EffectiveDate <= dateUtc) // Compare in memory after fetching
+                    .Select(m => new MenuItemViewModel
+                    {
+                        Id = m.Id,
+                        ItemName = m.ItemName,
+                        Price = m.Price,
+                        Category = m.Category.ToString(),
+                        MessGroupId = m.MessGroupId,
+                        MessGroupName = m.MessGroup?.Name ?? "",
+                        IsMandatory = m.MessGroup?.IsMandatory ?? false
+                    }).ToList();
+
+                var viewModel = students.Select(student =>
                 {
-                    Id = m.Id,
-                    ItemName = m.ItemName,
-                    Price = m.Price,
-                    Category = m.Category.ToString(),
-                    MessGroupId = m.MessGroupId,
-                    MessGroupName = m.MessGroup?.Name ?? "",
-                    IsMandatory = m.MessGroup?.IsMandatory ?? false
+                    var attendance = attendances.FirstOrDefault(a => a.UserId == student.Id);
+                    return new AttendanceViewModel
+                    {
+                        Id = attendance?.Id ?? 0,
+                        UserId = student.Id,
+                        UserName = student.UserName ?? "",
+                        FullName = student.FullName,
+                        Date = dateUtc,
+                        IsPresent = attendance?.IsPresent ?? false,
+                        Remarks = attendance?.Remarks,
+                        SelectedMenuIds = attendance?.AttendanceMenuItems?.Select(ami => ami.MenuId).ToList() ?? new List<int>(),
+                        AvailableMenuItems = availableMenuItems
+                    };
                 }).ToList();
 
-            var viewModel = students.Select(student =>
+                return PartialView("_AttendanceListPartial", viewModel);
+            }
+            catch (Exception ex)
             {
-                var attendance = attendances.FirstOrDefault(a => a.UserId == student.Id);
-                return new AttendanceViewModel
-                {
-                    Id = attendance?.Id ?? 0,
-                    UserId = student.Id,
-                    UserName = student.UserName ?? "",
-                    FullName = student.FullName,
-                    Date = date,
-                    IsPresent = attendance?.IsPresent ?? false,
-                    Remarks = attendance?.Remarks,
-                    SelectedMenuIds = attendance?.AttendanceMenuItems?.Select(ami => ami.MenuId).ToList() ?? new List<int>(),
-                    AvailableMenuItems = availableMenuItems
-                };
-            }).ToList();
-
-            return PartialView("_AttendanceListPartial", viewModel);
+                // Return error message as HTML instead of redirecting
+                return Content($"<div class='alert alert-danger'>Error loading students: {ex.Message}</div>", "text/html");
+            }
         }
 
         [HttpPost]
@@ -80,7 +91,10 @@ namespace _2022_CS_668.Controllers
 
                 foreach (var item in attendances)
                 {
-                    var existing = await _unitOfWork.Attendances.GetAttendanceAsync(item.UserId, item.Date);
+                    // Convert date to UTC for PostgreSQL compatibility
+                    var dateUtc = DateTime.SpecifyKind(item.Date.Date, DateTimeKind.Utc);
+                    
+                    var existing = await _unitOfWork.Attendances.GetAttendanceAsync(item.UserId, dateUtc);
                     
                     if (existing != null)
                     {
@@ -123,7 +137,7 @@ namespace _2022_CS_668.Controllers
                         var newAttendance = new Attendance
                         {
                             UserId = item.UserId,
-                            Date = item.Date,
+                            Date = dateUtc,
                             IsPresent = item.IsPresent,
                             MarkedBy = currentUser?.Id
                         };

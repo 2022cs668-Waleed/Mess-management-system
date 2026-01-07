@@ -48,13 +48,16 @@ namespace _2022_CS_668.Controllers
             {
                 var currentUser = await _userManager.GetUserAsync(User);
 
+                // Convert EffectiveDate to UTC for PostgreSQL compatibility
+                var effectiveDateUtc = DateTime.SpecifyKind(model.EffectiveDate.Date, DateTimeKind.Utc);
+
                 var menu = new Menu
                 {
                     MessGroupId = model.MessGroupId,
                     ItemName = model.ItemName,
                     Category = model.Category,
                     Price = model.Price,
-                    EffectiveDate = model.EffectiveDate,
+                    EffectiveDate = effectiveDateUtc,
                     IsActive = model.IsActive,
                     CreatedBy = currentUser?.Id
                 };
@@ -106,11 +109,14 @@ namespace _2022_CS_668.Controllers
                     return NotFound();
                 }
 
+                // Convert EffectiveDate to UTC for PostgreSQL compatibility
+                var effectiveDateUtc = DateTime.SpecifyKind(model.EffectiveDate.Date, DateTimeKind.Utc);
+
                 menu.MessGroupId = model.MessGroupId;
                 menu.ItemName = model.ItemName;
                 menu.Category = model.Category;
                 menu.Price = model.Price;
-                menu.EffectiveDate = model.EffectiveDate;
+                menu.EffectiveDate = effectiveDateUtc;
                 menu.IsActive = model.IsActive;
 
                 _unitOfWork.Menus.Update(menu);

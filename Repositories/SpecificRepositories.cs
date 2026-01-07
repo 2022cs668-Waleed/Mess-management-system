@@ -53,9 +53,13 @@ namespace _2022_CS_668.Repositories
 
         public async Task<IEnumerable<Menu>> GetMenuByDateAsync(DateTime date)
         {
+            // Normalize date to start of day in UTC for PostgreSQL
+            var startOfDay = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+            var endOfDay = startOfDay.AddDays(1);
+            
             return await _dbSet
                 .Include(m => m.MessGroup)
-                .Where(m => m.EffectiveDate.Date == date.Date && m.IsActive)
+                .Where(m => m.EffectiveDate >= startOfDay && m.EffectiveDate < endOfDay && m.IsActive)
                 .ToListAsync();
         }
 
@@ -70,9 +74,14 @@ namespace _2022_CS_668.Repositories
 
         public async Task<Menu?> GetMenuByDateAndGroupAsync(DateTime date, int messGroupId)
         {
+            // Normalize date to start of day in UTC for PostgreSQL
+            var startOfDay = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+            var endOfDay = startOfDay.AddDays(1);
+            
             return await _dbSet
                 .Include(m => m.MessGroup)
-                .FirstOrDefaultAsync(m => m.EffectiveDate.Date == date.Date 
+                .FirstOrDefaultAsync(m => m.EffectiveDate >= startOfDay 
+                    && m.EffectiveDate < endOfDay 
                     && m.MessGroupId == messGroupId 
                     && m.IsActive);
         }
@@ -84,43 +93,59 @@ namespace _2022_CS_668.Repositories
 
         public async Task<Attendance?> GetAttendanceAsync(string userId, DateTime date)
         {
+            // Normalize date to start of day in UTC for PostgreSQL
+            var startOfDay = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+            var endOfDay = startOfDay.AddDays(1);
+            
             return await _dbSet
                 .Include(a => a.User)
                 .Include(a => a.AttendanceMenuItems)
                     .ThenInclude(ami => ami.Menu)
                         .ThenInclude(m => m.MessGroup)
-                .FirstOrDefaultAsync(a => a.UserId == userId && a.Date.Date == date.Date);
+                .FirstOrDefaultAsync(a => a.UserId == userId && a.Date >= startOfDay && a.Date < endOfDay);
         }
 
         public async Task<IEnumerable<Attendance>> GetAttendanceByDateAsync(DateTime date)
         {
+            // Normalize date to start of day in UTC for PostgreSQL
+            var startOfDay = DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+            var endOfDay = startOfDay.AddDays(1);
+            
             return await _dbSet
                 .Include(a => a.User)
                 .Include(a => a.AttendanceMenuItems)
                     .ThenInclude(ami => ami.Menu)
-                .Where(a => a.Date.Date == date.Date)
+                .Where(a => a.Date >= startOfDay && a.Date < endOfDay)
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<Attendance>> GetUserAttendanceAsync(string userId, int month, int year)
         {
+            // Create date range for the month in UTC
+            var startOfMonth = DateTime.SpecifyKind(new DateTime(year, month, 1), DateTimeKind.Utc);
+            var endOfMonth = startOfMonth.AddMonths(1);
+            
             return await _dbSet
                 .Include(a => a.AttendanceMenuItems)
                     .ThenInclude(ami => ami.Menu)
                         .ThenInclude(m => m.MessGroup)
                 .Where(a => a.UserId == userId 
-                    && a.Date.Month == month 
-                    && a.Date.Year == year)
+                    && a.Date >= startOfMonth 
+                    && a.Date < endOfMonth)
                 .OrderBy(a => a.Date)
                 .ToListAsync();
         }
 
         public async Task<int> GetPresentDaysAsync(string userId, int month, int year)
         {
+            // Create date range for the month in UTC
+            var startOfMonth = DateTime.SpecifyKind(new DateTime(year, month, 1), DateTimeKind.Utc);
+            var endOfMonth = startOfMonth.AddMonths(1);
+            
             return await _dbSet
                 .CountAsync(a => a.UserId == userId 
-                    && a.Date.Month == month 
-                    && a.Date.Year == year 
+                    && a.Date >= startOfMonth 
+                    && a.Date < endOfMonth 
                     && a.IsPresent);
         }
     }
