@@ -41,20 +41,10 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-12 mb-3">
                                 <label asp-for="PhoneNumber" class="form-label">Phone Number</label>
                                 <input asp-for="PhoneNumber" class="form-control" placeholder="Enter your phone number" />
                                 <span asp-validation-for="PhoneNumber" class="text-danger"></span>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label asp-for="Role" class="form-label">Role</label>
-                                <select asp-for="Role" class="form-select">
-                                    <option value="">-- Select Role --</option>
-                                    <option value="Student">Student</option>
-                                    <option value="Admin">Admin</option>
-                                </select>
-                                <span asp-validation-for="Role" class="text-danger"></span>
                             </div>
                         </div>
 
@@ -74,7 +64,7 @@
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">
-                                <i class="fas fa-user-plus"></i> Register
+                                <i class="fas fa-user-plus"></i> Register as Student
                             </button>
                             <a asp-action="Login" asp-controller="Account" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left"></i> Back to Login

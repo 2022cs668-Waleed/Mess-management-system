@@ -146,11 +146,8 @@ namespace _2022_CS_668.Controllers
                 {
                     _logger.LogInformation("User created a new account with password.");
 
-                    // Assign role - Only Admin or Student
-                    if (!string.IsNullOrEmpty(model.Role) && (model.Role == "Admin" || model.Role == "Student"))
-                    {
-                        await _userManager.AddToRoleAsync(user, model.Role);
-                    }
+                    // Always assign Student role for public registration
+                    await _userManager.AddToRoleAsync(user, "Student");
 
                     TempData["SuccessMessage"] = "Registration successful! Please login.";
                     return RedirectToAction(nameof(Login));

@@ -44,8 +44,8 @@ namespace _2022_CS_668.ViewModels
         [Compare("Password", ErrorMessage = "Passwords do not match")]
         public string ConfirmPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Role is required")]
-        public string Role { get; set; } = string.Empty;
+        // Role is no longer required - new users are always Students
+        public string Role { get; set; } = "Student";
     }
 
     public class ChangePasswordViewModel
