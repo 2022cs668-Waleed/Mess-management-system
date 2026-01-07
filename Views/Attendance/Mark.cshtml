@@ -45,12 +45,6 @@
 
 @section Scripts {
     <script>
-        function getAntiforgeryToken() {
-            // Get the request verification token from the hidden input inserted by the framework in forms
-            var token = $('input[name="__RequestVerificationToken"]').first().val();
-            return token;
-        }
-
         $(document).ready(function () {
             $('#loadAttendance').on('click', function () {
                 var date = $('#attendanceDate').val();
@@ -66,11 +60,6 @@
                     data: { date: date },
                     success: function (result) {
                         hideLoading();
-                        // If result contains login redirect (HTML of login page), detect and redirect
-                        if (result && typeof result === 'string' && result.indexOf('<form') !== -1 && result.indexOf('Account/Login') !== -1) {
-                            window.location = '/Account/Login';
-                            return;
-                        }
                         $('#attendanceList').html(result);
                         $('#saveAttendance').show();
                         updateAllTotals();
@@ -107,7 +96,6 @@
                     url: '@Url.Action("BulkUpdate")',
                     type: 'POST',
                     contentType: 'application/json',
-                    headers: { 'RequestVerificationToken': getAntiforgeryToken() },
                     data: JSON.stringify(attendances),
                     success: function (result) {
                         hideLoading();
@@ -163,11 +151,11 @@
                 row.find('.total-amount').text(total.toFixed(2));
             }
 
-            window.updateAllTotals = function () {
+            function updateAllTotals() {
                 $('.attendance-row').each(function () {
                     updateRowTotal($(this));
                 });
-            };
+            }
         });
     </script>
 }

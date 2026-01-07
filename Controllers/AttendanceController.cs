@@ -162,7 +162,7 @@ namespace _2022_CS_668.Controllers
         }
 
         [HttpGet]
-        public IActionResult Report(DateTime? fromDate, DateTime? toDate)
+        public async Task<IActionResult> Report(DateTime? fromDate, DateTime? toDate)
         {
             fromDate ??= DateTime.Today.AddDays(-30);
             toDate ??= DateTime.Today;

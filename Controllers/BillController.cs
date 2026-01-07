@@ -107,6 +107,10 @@ namespace _2022_CS_668.Controllers
                             existingBill.TotalAmount = foodAmount + waterTeaAmount;
                             existingBill.GeneratedBy = currentUser?.Id;
                             existingBill.GeneratedAt = DateTime.UtcNow;
+                            // Reset status so the bill requires re-approval
+                            existingBill.Status = BillStatus.Generated;
+                            existingBill.ApprovedAt = null;
+                            existingBill.ApprovedBy = null;
                             
                             // Remove old bill details
                             var oldDetails = existingBill.BillDetails?.ToList() ?? new List<BillDetail>();

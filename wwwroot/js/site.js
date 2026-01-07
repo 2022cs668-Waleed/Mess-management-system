@@ -3,50 +3,6 @@
 
 // Write your JavaScript code.
 
-// Common AJAX helpers
-(function () {
-    // Ensure jQuery sets X-Requested-With header (should be default, but enforce)
-    $.ajaxSetup({
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    });
-
-    window.showLoading = function () {
-        // implement a simple loading indicator
-        if (!$('#globalLoading').length) {
-            $('body').append('<div id="globalLoading" style="position:fixed;top:10px;right:10px;z-index:9999;">Loading...</div>');
-        }
-        $('#globalLoading').show();
-    };
-
-    window.hideLoading = function () {
-        $('#globalLoading').hide();
-    };
-
-    window.showAlert = function (message, type) {
-        // type: success, danger, info
-        var alertHtml = '<div class="alert alert-' + (type || 'info') + ' alert-dismissible fade show" role="alert">' +
-            message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>';
-        $('.container-fluid').first().prepend(alertHtml);
-    };
-
-    window.handleAjaxError = function (xhr, status, error) {
-        if (xhr.status === 401) {
-            // For AJAX calls, avoid full redirect. Instead show login required message and reload after short delay.
-            showAlert('Your session has expired or you are not authorized. Redirecting to login...', 'danger');
-            setTimeout(function () { window.location = '/Account/Login'; }, 1200);
-            return;
-        }
-        var msg = 'An error occurred';
-        try {
-            var json = JSON.parse(xhr.responseText);
-            msg = json.message || xhr.statusText || msg;
-        } catch (e) {
-            msg = xhr.responseText || xhr.statusText || msg;
-        }
-        showAlert(msg, 'danger');
-    };
-})();
-
 // Sidebar Toggle
 $(document).ready(function () {
     $('#sidebarCollapse').on('click', function () {
@@ -68,6 +24,29 @@ $(document).ready(function () {
         }
     });
 });
+
+// AJAX Helper Functions
+function showLoading() {
+    $('body').append('<div class="spinner-overlay"><div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+}
+
+function hideLoading() {
+    $('.spinner-overlay').remove();
+}
+
+function showAlert(message, type = 'success') {
+    const alertHtml = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i> ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertHtml);
+    
+    setTimeout(function () {
+        $('.alert').fadeOut('slow');
+    }, 5000);
+}
 
 // Form Validation
 function validateForm(formId) {
@@ -99,6 +78,13 @@ function confirmAction(message, callback) {
     if (confirm(message)) {
         callback();
     }
+}
+
+// AJAX Error Handler
+function handleAjaxError(xhr, status, error) {
+    hideLoading();
+    showAlert('An error occurred: ' + error, 'danger');
+    console.error('AJAX Error:', xhr.responseText);
 }
 
 // DataTable Initialization (if using DataTables)

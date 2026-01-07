@@ -48,9 +48,9 @@ namespace _2022_CS_668.Controllers
             
             ViewData["ReturnUrl"] = returnUrl;
 
-            if (!ModelState.IsValid || model == null)
+            if (!ModelState.IsValid)
             {
-                _logger.LogWarning("Login failed: Invalid model state or null model");
+                _logger.LogWarning("Login failed: Invalid model state");
                 foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
                 {
                     _logger.LogWarning($"ModelState Error: {error.ErrorMessage}");
@@ -58,11 +58,10 @@ namespace _2022_CS_668.Controllers
                 return View(model);
             }
 
-            var email = model.Email ?? string.Empty;
-            var user = await _userManager.FindByEmailAsync(email);
+            var user = await _userManager.FindByEmailAsync(model.Email);
             if (user == null)
             {
-                _logger.LogWarning($"Login failed: User not found for email {email}");
+                _logger.LogWarning($"Login failed: User not found for email {model.Email}");
                 ModelState.AddModelError(string.Empty, "Invalid login attempt.");
                 return View(model);
             }
@@ -228,7 +227,7 @@ namespace _2022_CS_668.Controllers
             {
                 FullName = user.FullName,
                 Email = user.Email ?? string.Empty,
-                PhoneNumber = user.PhoneNumber ?? string.Empty
+                PhoneNumber = user.PhoneNumber
             };
 
             return View(model);

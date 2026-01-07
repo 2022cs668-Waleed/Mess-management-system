@@ -125,8 +125,5 @@ npm-debug.log*
 # Migration files (optional - uncomment if you want to exclude)
 # Migrations/
 
-# wwwroot/lib (if using LibMan)
-wwwroot/lib/
-
 # Documentation markdown files (optional - keep for now)
 # *.md
